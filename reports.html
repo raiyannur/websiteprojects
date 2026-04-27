@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GradeAI: Reports</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── report list styles ── */
+    .reports-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .report-row {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 18px 22px; display: flex; align-items: center; gap: 18px;
+      transition: box-shadow 0.15s, transform 0.15s;
+    }
+    .report-row:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+
+    .report-num-badge {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: var(--bg-dark); color: var(--text-white);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-family: var(--font-display); font-weight: 800; font-size: 14px; line-height: 1;
+    }
+    .report-num-badge span { font-size: 8px; font-weight: 600; color: #666; letter-spacing: 0.5px; margin-top: 2px; }
+
+    .report-row-main { flex: 1; min-width: 0; }
+    .report-row-title {
+      font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text-primary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .report-row-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+
+    .report-row-stats { display: flex; gap: 22px; flex-shrink: 0; }
+    .rs { text-align: center; }
+    .rs-val { font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--text-primary); }
+    .rs-val.green { color: #16a34a; }
+    .rs-val.amber { color: #b45309; }
+    .rs-val.red   { color: #c00; }
+    .rs-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+
+    .report-row-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .src-badge {
+      padding: 3px 8px; border-radius: 5px; font-size: 9.5px; font-weight: 800;
+      letter-spacing: 0.5px; color: #fff; flex-shrink: 0; align-self: flex-start;
+    }
+    .src-badge.pdf { background: #ef4444; }
+    .src-badge.csv { background: #16a34a; }
+
+    /* Hidden chart canvas used only for PDF rendering */
+    #pdfChartCanvas { display: none; }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="logo-dot"></div><div class="logo-text">GradeAI</div></div>
+  <div class="sidebar-section-label">Main</div>
+  <div class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard
+    </a>
+    <a href="upload.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload Data
+    </a>
+    <a href="predictions.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Predictions
+    </a>
+    <a href="reports.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Reports
+    </a>
+    <a href="profile.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar-sm">U</div>
+      <div><div class="user-name">User</div><div class="user-role">GradeAI</div></div>
+    </div>
+    <div class="sign-out" onclick="signOut()">Sign out</div>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Reports</div>
+      <div class="topbar-sub" id="todayDate">—</div>
+    </div>
+    <div class="topbar-right">
+      <div id="reportCount" style="font-size:12px;color:var(--text-muted);display:none"></div>
+      <div class="avatar">U</div>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div id="emptySection" class="empty-state-wrap" style="margin-top:40px;display:none">
+    <div class="empty-state-card">
+      <div class="empty-icon">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+      </div>
+      <div class="empty-title">No reports yet</div>
+      <div class="empty-desc">Run a prediction first — each prediction is automatically saved as a report here, ready to view or download as a PDF.</div>
+      <a href="upload.html" class="btn btn-dark" style="margin-top:20px;display:inline-flex;align-items:center;gap:8px;text-decoration:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload to get started
+      </a>
+    </div>
+  </div>
+
+  <!-- Reports list -->
+  <div id="reportsList" class="reports-list" style="display:none"></div>
+
+</main>
+
+<!-- Hidden canvas for PDF chart generation -->
+<canvas id="pdfChartCanvas" width="760" height="240"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  document.getElementById('todayDate').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // ── Auth guard ─────────────────────────────────────────────
+  (async () => {
+    try {
+      const r = await fetch('/api/me');
+      if (!r.ok) { window.location.replace('index.html'); return; }
+      const u = await r.json();
+      document.querySelectorAll('.user-name').forEach(el => el.textContent = u.name.split(' ')[0]);
+      document.querySelectorAll('.user-avatar-sm, .avatar').forEach(el => el.textContent = u.name.charAt(0).toUpperCase());
+    } catch(e) { window.location.replace('index.html'); }
+  })();
+
+  async function signOut() {
+    try { await fetch('/api/logout', { method: 'POST' }); } catch(e) {}
+    window.location.href = 'index.html';
+  }
+
+  // ── Load reports from localStorage ────────────────────────
+  let reports = [];
+  try { reports = JSON.parse(localStorage.getItem('gradeai_reports') || '[]'); } catch(e) {}
+
+  if (!reports.length) {
+    document.getElementById('emptySection').style.display = 'flex';
+  } else {
+    document.getElementById('reportsList').style.display = 'flex';
+    const countEl = document.getElementById('reportCount');
+    countEl.style.display = 'block';
+    countEl.textContent = reports.length + ' report' + (reports.length !== 1 ? 's' : '');
+    renderReportsList(reports);
+  }
+
+  // ── GPA colour helper ──────────────────────────────────────
+  function gpaClass(gpa) {
+    if (gpa >= 3.70) return 'green';
+    if (gpa >= 3.00) return 'amber';
+    return 'red';
+  }
+
+  // ── Render the list ────────────────────────────────────────
+  function renderReportsList(reps) {
+    const container = document.getElementById('reportsList');
+    reps.forEach((rep, i) => {
+      const r          = rep.result;
+      const predGPA    = r.predicted_gpa;
+      const projCGPA   = r.projected_cgpa_arithmetic;
+      const curCGPA    = r.history[r.history.length - 1].cgpa;
+      const name       = rep.studentName || 'CSV Upload';
+      const id         = rep.studentId   ? '· ID: ' + rep.studentId : '';
+      const major      = rep.major       ? '· ' + (rep.major.length > 40 ? rep.major.slice(0,38)+'…' : rep.major) : '';
+      const srcClass   = (rep.source === 'pdf') ? 'pdf' : 'csv';
+      const srcLabel   = (rep.source === 'pdf') ? 'PDF' : 'CSV';
+      const dateStr    = new Date(rep.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const timeStr    = new Date(rep.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+      const reportNum  = reps.length - i;
+
+      const div = document.createElement('div');
+      div.className = 'report-row';
+      div.innerHTML = `
+        <div class="report-num-badge">${reportNum}<span>REPORT</span></div>
+
+        <div class="report-row-main">
+          <div class="report-row-title">${escHtml(name)}</div>
+          <div class="report-row-meta">${dateStr} · ${timeStr}${escHtml(id)}${escHtml(major)}</div>
+        </div>
+
+        <div class="report-row-stats">
+          <div class="rs">
+            <div class="rs-val ${gpaClass(predGPA)}">${predGPA.toFixed(2)}</div>
+            <div class="rs-label">Pred. GPA</div>
+          </div>
+          <div class="rs">
+            <div class="rs-val">${projCGPA.toFixed(2)}</div>
+            <div class="rs-label">Proj. CGPA</div>
+          </div>
+          <div class="rs">
+            <div class="rs-val">${curCGPA.toFixed(2)}</div>
+            <div class="rs-label">Cur. CGPA</div>
+          </div>
+        </div>
+
+        <span class="src-badge ${srcClass}">${srcLabel}</span>
+
+        <div class="report-row-actions">
+          <a href="predictions.html?id=${encodeURIComponent(rep.id)}"
+             class="btn btn-outline" style="font-size:12px;padding:7px 13px;text-decoration:none">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            View
+          </a>
+          <button class="btn btn-dark" style="font-size:12px;padding:7px 13px"
+                  onclick="downloadPDF('${escHtml(rep.id)}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            PDF
+          </button>
+          <button class="btn btn-outline" style="font-size:12px;padding:7px 10px;color:#c00;border-color:#fca5a5"
+                  onclick="deleteReport('${escHtml(rep.id)}')" title="Delete report">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function deleteReport(reportId) {
+    reports = reports.filter(r => r.id !== reportId);
+    localStorage.setItem('gradeai_reports', JSON.stringify(reports));
+    // Re-render
+    const container = document.getElementById('reportsList');
+    container.innerHTML = '';
+    if (!reports.length) {
+      container.style.display = 'none';
+      document.getElementById('emptySection').style.display = 'flex';
+      document.getElementById('reportCount').style.display = 'none';
+    } else {
+      document.getElementById('reportCount').textContent =
+        reports.length + ' report' + (reports.length !== 1 ? 's' : '');
+      renderReportsList(reports);
+    }
+  }
+
+  // ── Chart image generator (off-screen canvas) ─────────────
+  function buildChartImage(r) {
+    return new Promise(resolve => {
+      const canvas = document.getElementById('pdfChartCanvas');
+      // Destroy any existing chart on this canvas
+      const existing = Chart.getChart(canvas);
+      if (existing) existing.destroy();
+
+      const labels    = r.history.map(h => 'Sem ' + h.semester).concat(['Sem ' + r.next_semester]);
+      const actuals   = r.history.map(h => h.gpa).concat([null]);
+      const predicted = r.history.map(() => null);
+      predicted[predicted.length - 1] = r.history[r.history.length - 1].gpa;
+      predicted.push(r.predicted_gpa);
+
+      const chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Semester GPA',
+              data: actuals,
+              borderColor: '#0d0d0d', backgroundColor: '#0d0d0d',
+              pointRadius: 5, borderWidth: 2.5, tension: 0.3, spanGaps: false
+            },
+            {
+              label: 'Predicted',
+              data: predicted,
+              borderColor: '#639922', backgroundColor: '#c8f135',
+              pointBackgroundColor: '#c8f135', pointBorderColor: '#0d0d0d', pointBorderWidth: 2,
+              pointRadius: [...r.history.map(() => 0), 8],
+              borderWidth: 2.5, spanGaps: false, borderDash: [5, 4]
+            }
+          ]
+        },
+        options: {
+          animation: false,
+          responsive: false,
+          plugins: {
+            legend: {
+              display: true, position: 'bottom',
+              labels: { font: { size: 11 }, boxWidth: 12 }
+            }
+          },
+          scales: {
+            y: {
+              min: 0, max: 4.1,
+              ticks: { callback: v => v.toFixed(1), font: { size: 11 } },
+              grid: { color: 'rgba(0,0,0,0.07)' }
+            },
+            x: {
+              ticks: { font: { size: 11 }, autoSkip: false, maxRotation: 0 },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+
+      // Give the browser a moment to paint the canvas
+      setTimeout(() => {
+        const img = canvas.toDataURL('image/png');
+        chart.destroy();
+        resolve(img);
+      }, 150);
+    });
+  }
+
+  // ── Personalised advice ────────────────────────────────────
+  function getAdvice(predGPA) {
+    if (predGPA < 3.00) {
+      return {
+        title: 'Keep Going. You Can Turn This Around.',
+        color: [192, 0, 0],
+        bgColor: [255, 229, 229],
+        lines: [
+          'Tough semesters happen to everyone. What counts is what you do next.',
+          '',
+          '- Course load: Take 2 major courses (at least one with a lab or project)',
+          '  and 1 minor course. That mix keeps the workload from piling up.',
+          '',
+          '- If you need more credits: add one elective with no lab or project.',
+          '  Extra credits without extra pressure.',
+          '',
+          '- Show up to every lecture and lock in a study group within the first week.',
+          '',
+          '- Go to office hours. Professors notice, and you get real feedback',
+          '  while there is still time to act on it.',
+        ]
+      };
+    }
+    if (predGPA <= 3.50) {
+      return {
+        title: 'Solid Work. A Few Tweaks Can Take You Higher.',
+        color: [133, 77, 14],
+        bgColor: [255, 243, 205],
+        lines: [
+          'You are in good shape. Not in trouble at all. A bit of fine-tuning',
+          'is all it takes to move up a notch.',
+          '',
+          '- Stick with a balanced mix: 2 major courses (one with a lab or project)',
+          '  plus 1 or 2 minor courses.',
+          '',
+          '- Look back at which subjects you scored highest in and pick electives',
+          '  that play to those strengths next semester.',
+          '',
+          '- Find your weakest subject from this term and address it early next time.',
+          '  Do not let gaps build up from one semester to the next.',
+          '',
+          '- A study group for your hardest course can make a real difference.',
+        ]
+      };
+    }
+    if (predGPA < 3.70) {
+      return {
+        title: 'Great Work. Keep the Consistency Going.',
+        color: [21, 128, 61],
+        bgColor: [220, 252, 231],
+        lines: [
+          'You are performing at a strong level. The main job now is staying consistent.',
+          '',
+          '- Your course strategy is working. Keep the same balance of major',
+          '  and minor courses going forward.',
+          '',
+          '- You have enough of a GPA buffer to take one challenging advanced',
+          '  elective if you want to push yourself.',
+          '',
+          '- Get started on assignments and projects early. That is what separates',
+          '  strong students from great ones.',
+        ]
+      };
+    }
+    // 3.70 - 4.00
+    return {
+      title: 'Outstanding. Keep That Momentum.',
+      color: [21, 128, 61],
+      bgColor: [220, 252, 231],
+      lines: [
+        'You are at the top. Here is how to stay there and keep building.',
+        '',
+        '- Push further: look for advanced electives, research assistant roles,',
+        '  or honours courses. You are more than ready for that level.',
+        '',
+        '- The schedule and study habits you have built are clearly working.',
+        '  Do not change what is not broken.',
+        '',
+        '- Think about mentoring other students or joining academic competitions.',
+        '  Teaching something is one of the best ways to deepen your own grasp of it.',
+        '',
+        'Keep it up.',
+      ]
+    };
+  }
+
+  // ── PDF download ───────────────────────────────────────────
+  async function downloadPDF(reportId) {
+    const rep = reports.find(r => r.id === reportId);
+    if (!rep) { alert('Report not found.'); return; }
+
+    const r        = rep.result;
+    const predGPA  = r.predicted_gpa;
+    const advice   = getAdvice(predGPA);
+
+    // Render chart image first
+    const chartImg = await buildChartImage(r);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageW = 210;
+    const pageH = 297;
+    const margin = 18;
+    const contentW = pageW - margin * 2;
+
+    // ── Header bar ──────────────────────────────────────────
+    doc.setFillColor(13, 13, 13);
+    doc.rect(0, 0, pageW, 30, 'F');
+
+    // Logo dot
+    doc.setFillColor(200, 241, 53);
+    doc.circle(margin + 2, 11, 2.5, 'F');
+
+    // GradeAI
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(200, 241, 53);
+    doc.text('GradeAI', margin + 8, 13);
+
+    // Subtitle
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(170, 170, 170);
+    doc.text('Prediction Report', margin + 8, 20);
+
+    // Date (top-right)
+    const dateStr = new Date(rep.timestamp).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text(dateStr, pageW - margin, 11, { align: 'right' });
+    doc.text(new Date(rep.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}), pageW - margin, 17, { align: 'right' });
+
+    let y = 40;
+
+    // ── Student info ────────────────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(26, 26, 26);
+    doc.text(rep.studentName || 'Student', margin, y);
+    y += 7;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    const metaParts = [];
+    if (rep.studentId) metaParts.push('ID: ' + rep.studentId);
+    if (rep.major)     metaParts.push(rep.major);
+    if (rep.minor)     metaParts.push('Minor: ' + rep.minor);
+    if (metaParts.length) { doc.text(metaParts.join('   ·   '), margin, y); y += 5; }
+
+    // Source badge
+    doc.setFillColor(rep.source === 'pdf' ? 239 : 22, rep.source === 'pdf' ? 68 : 197, rep.source === 'pdf' ? 68 : 94);
+    doc.roundedRect(margin, y, rep.source === 'pdf' ? 12 : 13, 5.5, 1, 1, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(255, 255, 255);
+    doc.text(rep.source === 'pdf' ? 'PDF' : 'CSV', margin + (rep.source === 'pdf' ? 6 : 6.5), y + 3.8, { align: 'center' });
+    y += 12;
+
+    // ── Divider ─────────────────────────────────────────────
+    doc.setDrawColor(229, 226, 219);
+    doc.setLineWidth(0.3);
+    doc.line(margin, y, pageW - margin, y);
+    y += 8;
+
+    // ── Prediction summary boxes ────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    doc.text('PREDICTION SUMMARY', margin, y);
+    y += 5;
+
+    const curCGPA  = r.history[r.history.length - 1].cgpa;
+    const projCGPA = r.projected_cgpa_arithmetic;
+
+    const boxes = [
+      { label: 'Predicted GPA',  value: predGPA.toFixed(2),  note: 'Semester ' + r.next_semester },
+      { label: 'Projected CGPA', value: projCGPA.toFixed(2), note: 'After next semester'          },
+      { label: 'Current CGPA',   value: curCGPA.toFixed(2),  note: 'Before prediction'            },
+      { label: 'Model Fit (R²)', value: r.r2_gpa.toFixed(2), note: 'Slope: ' + (r.slope_gpa >= 0 ? '+' : '') + r.slope_gpa.toFixed(3) }
+    ];
+
+    const boxW = contentW / 4 - 2;
+    const boxH = 18;
+    boxes.forEach((b, i) => {
+      const bx = margin + i * (boxW + 2.6);
+      doc.setFillColor(247, 249, 244);
+      doc.roundedRect(bx, y, boxW, boxH, 2, 2, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(130, 130, 130);
+      doc.text(b.label, bx + boxW / 2, y + 4.5, { align: 'center' });
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(i === 0 ? 22 : 26, i === 0 ? 163 : 26, i === 0 ? 74 : 26);
+      doc.text(b.value, bx + boxW / 2, y + 11, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(150, 150, 150);
+      doc.text(b.note, bx + boxW / 2, y + 15.5, { align: 'center' });
+    });
+    y += boxH + 8;
+
+    // CI band if available
+    if (r.predicted_gpa_ci_lower !== undefined) {
+      doc.setFillColor(240, 237, 230);
+      doc.roundedRect(margin, y, contentW, 7, 2, 2, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(80, 80, 80);
+      doc.text(
+        'Confidence interval (±1 SE): ' + r.predicted_gpa_ci_lower.toFixed(2) + ' – ' + r.predicted_gpa_ci_upper.toFixed(2),
+        margin + 4, y + 4.5
+      );
+      y += 12;
+    }
+
+    // ── Chart ───────────────────────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    doc.text('GPA TREND CHART', margin, y);
+    y += 4;
+
+    const chartH = 52;
+    doc.addImage(chartImg, 'PNG', margin, y, contentW, chartH);
+    y += chartH + 8;
+
+    // ── Semester history table ───────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    doc.text('SEMESTER HISTORY', margin, y);
+    y += 5;
+
+    // Table header — col 0 is wide enough for "Semester 11 (predicted)"
+    const cols = [margin, margin + 60, margin + 98, margin + 132];
+    const headers = ['Semester', 'Semester GPA', 'CGPA', 'vs Average'];
+    doc.setFillColor(26, 26, 26);
+    doc.rect(margin, y, contentW, 6.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(255, 255, 255);
+    headers.forEach((h, i) => doc.text(h, cols[i] + 2, y + 4.2));
+    y += 6.5;
+
+    const avgGPA = r.history.reduce((a, h) => a + h.gpa, 0) / r.history.length;
+    r.history.forEach((h, idx) => {
+      const diff    = h.gpa - avgGPA;
+      const diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(2);
+      const rowBg   = idx % 2 === 0 ? [255, 255, 255] : [248, 246, 242];
+      doc.setFillColor(...rowBg);
+      doc.rect(margin, y, contentW, 5.5, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(40, 40, 40);
+      doc.text('Semester ' + h.semester, cols[0] + 2, y + 3.8);
+      doc.setFont('helvetica', 'bold');
+      doc.text(h.gpa.toFixed(2), cols[1] + 2, y + 3.8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(h.cgpa.toFixed(2), cols[2] + 2, y + 3.8);
+      doc.setTextColor(diff >= 0 ? 22 : 192, diff >= 0 ? 163 : 0, diff >= 0 ? 74 : 0);
+      doc.text(diffStr, cols[3] + 2, y + 3.8);
+      y += 5.5;
+    });
+
+    // Predicted row
+    doc.setFillColor(220, 252, 231);
+    doc.rect(margin, y, contentW, 6, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(22, 163, 74);
+    doc.text('Semester ' + r.next_semester + ' (predicted)', cols[0] + 2, y + 4);
+    doc.text(predGPA.toFixed(2), cols[1] + 2, y + 4);
+    doc.setFont('helvetica', 'normal');
+    doc.text(projCGPA.toFixed(2), cols[2] + 2, y + 4);
+    doc.text('n/a', cols[3] + 2, y + 4);
+    y += 10;
+
+    // ── Check if we need a new page for advice ───────────────
+    if (y > pageH - 60) {
+      doc.addPage();
+      y = 20;
+    }
+
+    // ── Advice section ──────────────────────────────────────
+    const [ar, ag, ab]    = advice.color;
+    const [br, bg2, bb]   = advice.bgColor;
+
+    // Section title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    doc.text('ADVISOR NOTES', margin, y);
+    y += 5;
+
+    // Advice card background
+    const adviceLines = doc.splitTextToSize(
+      advice.lines.join('\n'), contentW - 10
+    );
+    const cardH = adviceLines.length * 4.5 + 18;
+
+    // Coloured left border
+    doc.setFillColor(br, bg2, bb);
+    doc.roundedRect(margin, y, contentW, cardH, 2, 2, 'F');
+    doc.setFillColor(ar, ag, ab);
+    doc.rect(margin, y, 3, cardH, 'F');
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(ar, ag, ab);
+    doc.text(advice.title, margin + 7, y + 7);
+
+    // Body lines
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(50, 50, 50);
+    let lineY = y + 14;
+    advice.lines.forEach(line => {
+      if (line === '') { lineY += 2; return; }
+      const wrapped = doc.splitTextToSize(line, contentW - 10);
+      wrapped.forEach(wl => { doc.text(wl, margin + 7, lineY); lineY += 4.5; });
+    });
+
+    y += cardH + 10;
+
+    // ── Footer ──────────────────────────────────────────────
+    const footerY = pageH - 10;
+    doc.setDrawColor(229, 226, 219);
+    doc.setLineWidth(0.2);
+    doc.line(margin, footerY - 4, pageW - margin, footerY - 4);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(170, 170, 170);
+    doc.text('Generated by GradeAI · ' + new Date().toLocaleDateString(), margin, footerY);
+    doc.text('For academic guidance only — not an official document.', pageW - margin, footerY, { align: 'right' });
+
+    // ── Save ─────────────────────────────────────────────────
+    const filename = 'GradeAI_Report_' + (rep.studentName ? rep.studentName.replace(/\s+/g, '_') : 'Student') + '_' +
+      new Date(rep.timestamp).toISOString().slice(0, 10) + '.pdf';
+    doc.save(filename);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GradeAI: Create Account</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { overflow: hidden; }
+    .err-msg  { font-size: 12.5px; color: #c00;     background: #ffe5e5; border-radius: 8px; padding: 10px 14px; margin-top: 14px; display: none; }
+    .ok-msg   { font-size: 12.5px; color: #166534;  background: #dcfce7; border-radius: 8px; padding: 10px 14px; margin-top: 14px; display: none; }
+    .err-msg.show, .ok-msg.show { display: block; }
+    .btn-signin:disabled { opacity: .6; cursor: not-allowed; }
+    .pw-rules { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <!-- Left panel -->
+    <div class="login-left">
+      <div class="sidebar-logo">
+        <div class="logo-dot"></div>
+        <div class="logo-text">GradeAI</div>
+      </div>
+      <div class="login-headline">
+        <div class="login-eyebrow">AI-Powered Education</div>
+        <div class="login-h1">
+          Predict.<br>
+          Protect.<br>
+          <span>Improve.</span>
+        </div>
+        <p class="login-desc">Create your free GradeAI account and start predicting your academic performance in seconds.</p>
+        <div class="login-divider"></div>
+        <div class="login-stats">
+          <div><div class="login-stat-val">Free</div><div class="login-stat-label">Always</div></div>
+          <div><div class="login-stat-val">CSV</div><div class="login-stat-label">or PDF Upload</div></div>
+          <div><div class="login-stat-val">ML</div><div class="login-stat-label">Powered</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="login-right">
+      <div class="login-form-wrap">
+        <div class="login-welcome">Create account</div>
+        <div class="login-sub">Fill in the details below to get started</div>
+
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-input" id="regName" type="text" placeholder="Enter your full name" autocomplete="name" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="regEmail" type="email" placeholder="Enter your email address" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-input" id="regPassword" type="password" placeholder="Create a password" autocomplete="new-password" />
+          <div class="pw-rules">Minimum 8 characters.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm Password</label>
+          <input class="form-input" id="regConfirm" type="password" placeholder="Repeat your password" autocomplete="new-password" />
+        </div>
+
+        <div id="regErr" class="err-msg"></div>
+        <div id="regOk"  class="ok-msg"></div>
+
+        <button class="btn-signin" id="regBtn" onclick="doRegister()">
+          Create Account
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 16l4-4-4-4M8 12h8"/>
+          </svg>
+        </button>
+
+        <div style="margin-top:18px;font-size:12.5px;color:var(--text-muted);text-align:center">
+          Already have an account?
+          <a href="index.html" style="color:var(--text-primary);font-weight:600;text-decoration:none">Sign in</a>
+        </div>
+      </div>
+      <div class="login-version">v2.1.0</div>
+    </div>
+  </div>
+
+<script>
+  // If already logged in, skip straight to dashboard
+  (async () => {
+    try {
+      const r = await fetch('/api/me');
+      if (r.ok) window.location.replace('dashboard.html');
+    } catch(e) {}
+  })();
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doRegister();
+  });
+
+  async function doRegister() {
+    const name     = document.getElementById('regName').value.trim();
+    const email    = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirm  = document.getElementById('regConfirm').value;
+    const errEl    = document.getElementById('regErr');
+    const okEl     = document.getElementById('regOk');
+    const btn      = document.getElementById('regBtn');
+
+    errEl.classList.remove('show');
+    okEl.classList.remove('show');
+
+    if (!name || !email || !password || !confirm) {
+      errEl.textContent = 'All fields are required.';
+      errEl.classList.add('show');
+      return;
+    }
+    if (password !== confirm) {
+      errEl.textContent = 'Passwords do not match.';
+      errEl.classList.add('show');
+      return;
+    }
+    if (password.length < 8) {
+      errEl.textContent = 'Password must be at least 8 characters.';
+      errEl.classList.add('show');
+      return;
+    }
+
+    btn.disabled    = true;
+    btn.textContent = 'Creating account…';
+
+    try {
+      const res  = await fetch('/api/register', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errEl.textContent = data.error || 'Registration failed.';
+        errEl.classList.add('show');
+        btn.disabled    = false;
+        btn.textContent = 'Create Account';
+        return;
+      }
+
+      okEl.textContent = 'Account created! Redirecting…';
+      okEl.classList.add('show');
+      setTimeout(() => window.location.href = 'upload.html', 900);
+    } catch(e) {
+      errEl.textContent = 'Could not connect to server.';
+      errEl.classList.add('show');
+      btn.disabled    = false;
+      btn.textContent = 'Create Account';
+    }
+  }
+</script>
+</body>
+</html>

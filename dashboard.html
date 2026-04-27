@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GradeAI: Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── dashboard-specific extras ── */
+    .dash-banner {
+      background: var(--bg-dark); border-radius: var(--radius-lg);
+      padding: 22px 28px; margin-bottom: 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .dash-banner-left { display: flex; align-items: center; gap: 16px; }
+    .dash-avatar {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--accent); display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 800; font-size: 20px; color: #111;
+      flex-shrink: 0;
+    }
+    .dash-name { font-family: var(--font-display); font-size: 19px; font-weight: 800; color: var(--text-white); }
+    .dash-id   { font-size: 11.5px; color: #666; margin-top: 3px; }
+    .dash-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .dash-tag {
+      padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      background: #1e1e1e; color: #aaa; border: 1px solid #2a2a2a;
+    }
+    .dash-tag.accent { background: rgba(200,241,53,0.15); color: var(--accent); border-color: rgba(200,241,53,0.3); }
+
+    .dash-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+
+    .dash-two-col { display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
+    .dash-chart-card {
+      background: #fff; border-radius: var(--radius-lg); padding: 20px 22px;
+      border: 1px solid var(--border);
+    }
+    .dash-info-col { display: flex; flex-direction: column; gap: 12px; }
+    .dash-info-card {
+      background: #fff; border-radius: var(--radius-lg); padding: 16px 18px;
+      border: 1px solid var(--border);
+    }
+    .dash-info-label { font-size: 9.5px; letter-spacing: 1.3px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+    .dash-info-val   { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text-primary); }
+    .dash-info-sub   { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+    .trend-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .trend-up   { background: #dcfce7; color: #16a34a; }
+    .trend-flat { background: #f0f0e8; color: #666; }
+    .trend-down { background: #ffe5e5; color: #c00; }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="logo-dot"></div><div class="logo-text">GradeAI</div></div>
+  <div class="sidebar-section-label">Main</div>
+  <div class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard
+    </a>
+    <a href="upload.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload Data
+    </a>
+    <a href="predictions.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Predictions
+    </a>
+    <a href="reports.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Reports
+    </a>
+    <a href="profile.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar-sm" id="sidebarInitial">U</div>
+      <div><div class="user-name" id="sidebarName">User</div><div class="user-role">GradeAI</div></div>
+    </div>
+    <div class="sign-out" onclick="signOut()">Sign out</div>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-sub" id="todayDate">—</div>
+    </div>
+    <div class="topbar-right">
+      <a href="upload.html" class="btn btn-dark" style="font-size:12px;padding:7px 14px;text-decoration:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        New Upload
+      </a>
+      <div class="avatar" id="topbarAvatar">U</div>
+    </div>
+  </div>
+
+  <!-- ── Empty state (shown when no data) ─────────────────── -->
+  <div id="emptySection" class="empty-state-wrap">
+    <div class="empty-state-card">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="empty-title">No data yet</div>
+      <div class="empty-desc">Upload a transcript PDF or semester GPA CSV to run a prediction and see your dashboard come to life.</div>
+      <a href="upload.html" class="btn btn-dark" style="margin-top:20px;display:inline-flex;align-items:center;gap:8px;text-decoration:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload Data
+      </a>
+    </div>
+
+    <div class="how-it-works">
+      <div class="card-title" style="margin-bottom:18px">How GradeAI Works</div>
+      <div class="steps-grid">
+        <div class="step-item"><div class="step-num">1</div><div><div class="step-title">Upload a CSV or PDF</div><div class="step-desc">Provide a semester GPA CSV or your university transcript PDF.</div></div></div>
+        <div class="step-item"><div class="step-num">2</div><div><div class="step-title">Model Runs</div><div class="step-desc">Linear regression is applied to the GPA trend to predict the next semester.</div></div></div>
+        <div class="step-item"><div class="step-num">3</div><div><div class="step-title">Review Results</div><div class="step-desc">See predicted GPA, CGPA trajectory, and trend chart.</div></div></div>
+        <div class="step-item"><div class="step-num">4</div><div><div class="step-title">Download Report</div><div class="step-desc">Export a PDF or CSV summary from the Reports page.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Data section (shown when data exists) ────────────── -->
+  <div id="dataSection" style="display:none">
+
+    <!-- Student profile banner -->
+    <div class="dash-banner">
+      <div class="dash-banner-left">
+        <div class="dash-avatar" id="dashAvatar">S</div>
+        <div>
+          <div class="dash-name" id="dashName">Student</div>
+          <div class="dash-id"  id="dashIdLine">—</div>
+        </div>
+      </div>
+      <div class="dash-tags" id="dashTags"></div>
+    </div>
+
+    <!-- 4 stat cards -->
+    <div class="dash-stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Current CGPA</div>
+        <div class="stat-value" id="dashCGPA">—</div>
+        <div class="stat-delta" id="dashCGPASub">After semester —</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Last Semester GPA</div>
+        <div class="stat-value" id="dashLastGPA">—</div>
+        <div class="stat-delta" id="dashLastSemSub">Semester —</div>
+      </div>
+      <div class="stat-card dark">
+        <div class="stat-label">Predicted Next GPA</div>
+        <div class="stat-value accent" id="dashPredGPA">—</div>
+        <div class="stat-delta" id="dashPredSemSub">Semester —</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Semesters Completed</div>
+        <div class="stat-value" id="dashSemCount">—</div>
+        <div class="stat-delta">semesters of data</div>
+      </div>
+    </div>
+
+    <!-- Chart + info column -->
+    <div class="dash-two-col">
+      <!-- Mini chart -->
+      <div class="dash-chart-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div class="card-title" style="font-size:14px">GPA History &amp; Prediction</div>
+          <div id="dashTrendPill" class="trend-pill trend-flat">—</div>
+        </div>
+        <div style="position:relative;height:180px">
+          <canvas id="dashChart"></canvas>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text-muted);text-align:right">
+          <a href="predictions.html" style="color:var(--text-muted);font-weight:600;text-decoration:none">View full prediction →</a>
+        </div>
+      </div>
+
+      <!-- Right info column -->
+      <div class="dash-info-col">
+
+        <!-- Current semester performance -->
+        <div class="dash-info-card">
+          <div class="dash-info-label">Current Semester</div>
+          <div class="dash-info-val" id="dashCurSemLabel">Semester —</div>
+          <div class="dash-info-sub" id="dashCurSemGPA">GPA: —</div>
+        </div>
+
+        <!-- Major -->
+        <div class="dash-info-card" id="dashMajorCard">
+          <div class="dash-info-label">Major / Program</div>
+          <div class="dash-info-val" id="dashMajorVal">—</div>
+        </div>
+
+        <!-- Minor (hidden if absent) -->
+        <div class="dash-info-card" id="dashMinorCard" style="display:none">
+          <div class="dash-info-label">Minor</div>
+          <div class="dash-info-val" id="dashMinorVal">—</div>
+        </div>
+
+        <!-- Model confidence -->
+        <div class="dash-info-card">
+          <div class="dash-info-label">Model Fit (R²)</div>
+          <div class="dash-info-val" id="dashR2">—</div>
+          <div class="dash-info-sub" id="dashSlopeSub">Slope: —</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /dataSection -->
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+  document.getElementById('todayDate').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // ── Auth guard ─────────────────────────────────────────────
+  (async () => {
+    try {
+      const r = await fetch('/api/me');
+      if (!r.ok) { window.location.replace('index.html'); return; }
+      const u = await r.json();
+      document.querySelectorAll('.user-name').forEach(el => el.textContent = u.name.split(' ')[0]);
+      document.querySelectorAll('.user-avatar-sm, .avatar').forEach(el => el.textContent = u.name.charAt(0).toUpperCase());
+    } catch(e) { window.location.replace('index.html'); }
+  })();
+
+  async function signOut() {
+    try { await fetch('/api/logout', { method: 'POST' }); } catch(e) {}
+    window.location.href = 'index.html';
+  }
+
+  // ── Load data ──────────────────────────────────────────────
+  let result = null;
+  let report = null;
+  try { result = JSON.parse(localStorage.getItem('gradeai_result')); } catch(e) {}
+  try { report = JSON.parse(localStorage.getItem('gradeai_current_report')); } catch(e) {}
+
+  if (!result) {
+    document.getElementById('emptySection').style.display = 'flex';
+  } else {
+    document.getElementById('emptySection').style.display = 'none';
+    document.getElementById('dataSection').style.display = 'block';
+    renderDashboard(result, report);
+  }
+
+  function renderDashboard(r, rep) {
+    // Student info
+    const name     = (rep && rep.studentName) || 'Student';
+    const id       = (rep && rep.studentId)   || null;
+    const major    = (rep && rep.major)        || null;
+    const minor    = (rep && rep.minor)        || null;
+
+    const initial = name.trim().charAt(0).toUpperCase();
+
+    // Avatar / sidebar
+    document.getElementById('dashAvatar').textContent     = initial;
+    document.getElementById('topbarAvatar').textContent   = initial;
+    document.getElementById('sidebarInitial').textContent = initial;
+    document.getElementById('sidebarName').textContent    = name.split(' ')[0];
+
+    document.getElementById('dashName').textContent = name;
+    document.getElementById('dashIdLine').textContent = id ? 'ID: ' + id : 'No ID on record';
+
+    // Tags
+    const tagsEl = document.getElementById('dashTags');
+    if (major) {
+      const t = document.createElement('div');
+      t.className = 'dash-tag accent';
+      t.textContent = major.length > 36 ? major.slice(0, 34) + '…' : major;
+      tagsEl.appendChild(t);
+    }
+    if (minor) {
+      const t = document.createElement('div');
+      t.className = 'dash-tag';
+      t.textContent = 'Minor: ' + minor;
+      tagsEl.appendChild(t);
+    }
+    if (!major && !minor) {
+      const t = document.createElement('div');
+      t.className = 'dash-tag';
+      t.textContent = (rep && rep.source === 'pdf') ? 'Transcript Upload' : 'CSV Upload';
+      tagsEl.appendChild(t);
+    }
+
+    // Stats
+    const lastSem  = r.history[r.history.length - 1];
+    const currentCGPA = lastSem.cgpa;
+    const predGPA     = r.predicted_gpa;
+    const slope       = r.slope_gpa;
+
+    document.getElementById('dashCGPA').textContent       = currentCGPA.toFixed(2);
+    document.getElementById('dashCGPASub').textContent    = 'After semester ' + lastSem.semester;
+    document.getElementById('dashLastGPA').textContent    = lastSem.gpa.toFixed(2);
+    document.getElementById('dashLastSemSub').textContent = 'Semester ' + lastSem.semester;
+    document.getElementById('dashPredGPA').textContent    = predGPA.toFixed(2);
+    document.getElementById('dashPredSemSub').textContent = 'Semester ' + r.next_semester;
+    document.getElementById('dashSemCount').textContent   = r.total_semesters_used;
+
+    // Trend pill
+    const pill = document.getElementById('dashTrendPill');
+    if (slope > 0.01)       { pill.className = 'trend-pill trend-up';   pill.textContent = '↑ Improving'; }
+    else if (slope < -0.01) { pill.className = 'trend-pill trend-down'; pill.textContent = '↓ Declining'; }
+    else                    { pill.className = 'trend-pill trend-flat'; pill.textContent = '→ Stable';    }
+
+    // Right column info
+    document.getElementById('dashCurSemLabel').textContent = 'Semester ' + lastSem.semester;
+    document.getElementById('dashCurSemGPA').textContent   = 'GPA: ' + lastSem.gpa.toFixed(2) + '  ·  CGPA: ' + currentCGPA.toFixed(2);
+
+    if (major) {
+      document.getElementById('dashMajorVal').textContent = major;
+    } else {
+      document.getElementById('dashMajorCard').querySelector('.dash-info-val').textContent = '—';
+    }
+    if (minor) {
+      document.getElementById('dashMinorCard').style.display = 'block';
+      document.getElementById('dashMinorVal').textContent = minor;
+    }
+
+    document.getElementById('dashR2').textContent    = 'R² ' + r.r2_gpa.toFixed(2);
+    document.getElementById('dashSlopeSub').textContent = 'Slope: ' + (slope >= 0 ? '+' : '') + slope.toFixed(4) + ' / sem';
+
+    // ── Mini chart ──────────────────────────────────────────
+    const labels   = r.history.map(h => 'S' + h.semester).concat(['S' + r.next_semester]);
+    const actuals  = r.history.map(h => h.gpa).concat([null]);
+    const predicted = r.history.map(() => null);
+    predicted[predicted.length - 1] = r.history[r.history.length - 1].gpa;
+    predicted.push(predGPA);
+
+    new Chart(document.getElementById('dashChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'GPA',
+            data: actuals,
+            borderColor: '#0d0d0d',
+            backgroundColor: '#0d0d0d',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2,
+            tension: 0.3,
+            spanGaps: false
+          },
+          {
+            label: 'Predicted',
+            data: predicted,
+            borderColor: '#c8f135',
+            backgroundColor: '#c8f135',
+            pointBackgroundColor: '#c8f135',
+            pointBorderColor: '#0d0d0d',
+            pointBorderWidth: 2,
+            pointRadius: [].concat(r.history.map(() => 0), [7]),
+            borderWidth: 2,
+            tension: 0,
+            spanGaps: false,
+            borderDash: [4, 3]
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ' GPA: ' + (ctx.parsed.y !== null ? ctx.parsed.y.toFixed(2) : '—')
+            }
+          }
+        },
+        scales: {
+          y: {
+            min: 0,
+            max: 4.1,
+            ticks: { callback: v => v.toFixed(1), font: { size: 10 }, color: '#aaa', maxTicksLimit: 5 },
+            grid: { color: 'rgba(128,128,128,0.1)' }
+          },
+          x: {
+            ticks: { font: { size: 10 }, color: '#aaa', autoSkip: false, maxRotation: 0 },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+</script>
+</body>
+</html>

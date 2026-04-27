@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GradeAI: Upload Data</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .tab-row { display: flex; gap: 0; margin-bottom: 24px; border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; background: #f5f3ed; }
+    .tab-btn { flex: 1; padding: 11px 0; font-size: 13px; font-weight: 600; font-family: var(--font-display); cursor: pointer; border: none; background: transparent; color: var(--text-muted); transition: all .15s; display: flex; align-items: center; justify-content: center; gap: 7px; }
+    .tab-btn.active { background: var(--bg-dark); color: #fff; }
+    .tab-btn svg { width: 14px; height: 14px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .status-msg { font-size: 12.5px; padding: 10px 14px; border-radius: 8px; margin-top: 14px; display: none; }
+    .status-msg.error { background: #ffe5e5; color: #c00; display: block; }
+    .status-msg.success { background: #dcfce7; color: #166534; display: block; }
+    .status-msg.loading { background: #f0f0e8; color: #555; display: block; }
+    .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid #bbb; border-top-color: #333; border-radius: 50%; animation: spin .7s linear infinite; margin-right: 6px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .file-selected-name { font-size: 12px; color: var(--text-muted); margin-top: 8px; font-style: italic; }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="logo-dot"></div><div class="logo-text">GradeAI</div></div>
+  <div class="sidebar-section-label">Main</div>
+  <div class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard
+    </a>
+    <a href="upload.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload Data
+    </a>
+    <a href="predictions.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Predictions
+    </a>
+    <a href="reports.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Reports
+    </a>
+    <a href="profile.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar-sm">U</div>
+      <div><div class="user-name">User</div><div class="user-role">GradeAI</div></div>
+    </div>
+    <div class="sign-out" onclick="signOut()">Sign out</div>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Upload Student Data</div>
+      <div class="topbar-sub" id="todayDate">—</div>
+    </div>
+    <div class="topbar-right"><div class="avatar">U</div></div>
+  </div>
+
+  <div class="breadcrumb">
+    <a href="dashboard.html">Dashboard</a>
+    <span class="breadcrumb-sep">›</span>
+    <span>Upload Data</span>
+  </div>
+
+  <div class="card" style="max-width:660px;padding:28px 32px">
+    <div style="margin-bottom:22px">
+      <div class="card-title" style="font-size:17px;margin-bottom:5px">Upload Student Data</div>
+      <p style="font-size:12.5px;color:var(--text-muted);line-height:1.6">
+        Upload either a clean CSV or a PDF transcript. The model will predict the next semester's GPA and projected CGPA using linear regression.
+      </p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('csv')" id="tab-csv">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        CSV Upload
+      </button>
+      <button class="tab-btn" onclick="switchTab('pdf')" id="tab-pdf">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+        PDF Transcript
+      </button>
+    </div>
+
+    <!-- CSV Panel -->
+    <div class="tab-panel active" id="panel-csv">
+      <div class="upload-area" id="dropZoneCSV" onclick="document.getElementById('csvInput').click()">
+        <div class="upload-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div class="upload-title" id="csvTitle">Drag &amp; drop your CSV here</div>
+        <div class="upload-sub" id="csvSub">or click to browse</div>
+        <button class="btn btn-dark" style="font-size:12px;margin-top:12px" onclick="event.stopPropagation();document.getElementById('csvInput').click()">Choose CSV</button>
+        <div class="upload-formats" style="margin-top:10px">Accepted: <span class="format-tag">.csv</span> · Max 10MB</div>
+        <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="handleCSV(this)"/>
+      </div>
+
+      <div style="margin-top:4px">
+        <div class="card-title" style="font-size:13px;margin-bottom:10px">Expected CSV Format</div>
+        <div class="csv-example"><code>semester,gpa,cgpa
+1,3.50,3.50
+2,3.70,3.60
+3,3.40,3.53
+4,3.80,3.60</code></div>
+        <div class="req-grid" style="margin-top:14px">
+          <div class="req-item"><div class="req-check required"><svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="req-title">semester</div><div class="req-sub">Integer — semester number (1, 2, 3…)</div></div></div>
+          <div class="req-item"><div class="req-check required"><svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="req-title">gpa</div><div class="req-sub">Float — semester GPA (0.00 – 4.00)</div></div></div>
+          <div class="req-item"><div class="req-check required"><svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="req-title">cgpa</div><div class="req-sub">Float — cumulative GPA at that semester</div></div></div>
+          <div class="req-item" style="opacity:.7"><div class="req-check optional" style="font-size:11px;font-weight:700;color:#888;justify-content:center">!</div><div><div class="req-title">Min 3 rows</div><div class="req-sub">At least 3 semesters required for regression</div></div></div>
+        </div>
+      </div>
+
+      <div id="csvStatus" class="status-msg"></div>
+
+      <div class="upload-actions">
+        <button class="btn btn-outline" onclick="window.location.href='dashboard.html'">Cancel</button>
+        <button class="btn btn-dark" id="runCSVBtn" disabled onclick="runCSV()">
+          Run Prediction
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- PDF Panel -->
+    <div class="tab-panel" id="panel-pdf">
+      <div class="upload-area" id="dropZonePDF" onclick="document.getElementById('pdfInput').click()">
+        <div class="upload-icon" style="background:#c8f135">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <div class="upload-title" id="pdfTitle">Drag &amp; drop your transcript PDF</div>
+        <div class="upload-sub" id="pdfSub">University transcript — semester GPAs will be extracted automatically</div>
+        <button class="btn btn-dark" style="font-size:12px;margin-top:12px" onclick="event.stopPropagation();document.getElementById('pdfInput').click()">Choose PDF</button>
+        <div class="upload-formats" style="margin-top:10px">Accepted: <span class="format-tag">.pdf</span> · Max 20MB · Must be text-based (not scanned)</div>
+        <input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="handlePDF(this)"/>
+      </div>
+
+      <div style="background:#fafaf7;border:1.5px solid var(--border);border-radius:10px;padding:16px 18px;margin-top:4px">
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:8px">What gets extracted</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.8">
+          The backend reads each semester block in the PDF and extracts the <strong>GPA line</strong> for each semester. Courses with W (withdrawn) or Z grades are skipped. CGPA is calculated from the cumulative grade points and credits on the final page.<br><br>
+          <strong>Supported format:</strong> NSU-style transcripts (and similar layouts with "GPA :" rows per semester block). Other university formats may need manual CSV entry.
+        </div>
+      </div>
+
+      <div id="pdfStatus" class="status-msg"></div>
+
+      <div class="upload-actions">
+        <button class="btn btn-outline" onclick="window.location.href='dashboard.html'">Cancel</button>
+        <button class="btn btn-dark" id="runPDFBtn" disabled onclick="runPDF()">
+          Extract &amp; Predict
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  const API = '';
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // ── Auth guard ─────────────────────────────────────────────
+  (async () => {
+    try {
+      const r = await fetch('/api/me');
+      if (!r.ok) { window.location.replace('index.html'); return; }
+      const u = await r.json();
+      document.querySelectorAll('.user-name').forEach(el => el.textContent = u.name.split(' ')[0]);
+      document.querySelectorAll('.user-avatar-sm, .avatar').forEach(el => el.textContent = u.name.charAt(0).toUpperCase());
+    } catch(e) { window.location.replace('index.html'); }
+  })();
+
+  async function signOut() {
+    try { await fetch('/api/logout', { method: 'POST' }); } catch(e) {}
+    window.location.href = 'index.html';
+  }
+
+  let csvFile = null, pdfFile = null;
+
+  function switchTab(t) {
+    ['csv','pdf'].forEach(x => {
+      document.getElementById('tab-'+x).classList.toggle('active', x===t);
+      document.getElementById('panel-'+x).classList.toggle('active', x===t);
+    });
+  }
+
+  function handleCSV(input) {
+    csvFile = input.files[0];
+    if (!csvFile) return;
+    document.getElementById('csvTitle').textContent = csvFile.name;
+    document.getElementById('csvSub').textContent = 'File selected — ready to run';
+    document.getElementById('dropZoneCSV').style.borderColor = 'var(--accent)';
+    document.getElementById('runCSVBtn').disabled = false;
+  }
+  function handlePDF(input) {
+    pdfFile = input.files[0];
+    if (!pdfFile) return;
+    document.getElementById('pdfTitle').textContent = pdfFile.name;
+    document.getElementById('pdfSub').textContent = 'Transcript selected — will extract semester GPAs';
+    document.getElementById('dropZonePDF').style.borderColor = 'var(--accent)';
+    document.getElementById('runPDFBtn').disabled = false;
+  }
+
+  // Drag & drop
+  ['CSV','PDF'].forEach(type => {
+    const zone = document.getElementById('dropZone'+type);
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.background='#ede9e0'; });
+    zone.addEventListener('dragleave', () => { zone.style.background=''; });
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.style.background='';
+      const f = e.dataTransfer.files[0];
+      if (!f) return;
+      if (type==='CSV') { document.getElementById('csvInput').files; handleFileSet('csv', f); }
+      else { handleFileSet('pdf', f); }
+    });
+  });
+  function handleFileSet(type, f) {
+    if (type==='csv') { csvFile=f; document.getElementById('csvTitle').textContent=f.name; document.getElementById('csvSub').textContent='File selected'; document.getElementById('runCSVBtn').disabled=false; document.getElementById('dropZoneCSV').style.borderColor='var(--accent)'; }
+    else { pdfFile=f; document.getElementById('pdfTitle').textContent=f.name; document.getElementById('pdfSub').textContent='Transcript selected'; document.getElementById('runPDFBtn').disabled=false; document.getElementById('dropZonePDF').style.borderColor='var(--accent)'; }
+  }
+
+  function setStatus(id, type, msg) {
+    const el = document.getElementById(id);
+    el.className = 'status-msg '+type;
+    el.innerHTML = type==='loading' ? '<span class="spinner"></span>'+msg : msg;
+  }
+
+  async function postFile(file, endpoint, statusId, btn) {
+    btn.disabled = true;
+    setStatus(statusId, 'loading', 'Uploading and running prediction…');
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch(API+endpoint, { method:'POST', body:fd });
+      const data = await res.json();
+      if (!res.ok) { setStatus(statusId, 'error', data.error || 'Server error'); btn.disabled=false; return; }
+
+      // Save latest result (backward compat)
+      localStorage.setItem('gradeai_result', JSON.stringify(data));
+
+      // Build a full report record and append to history
+      const report = {
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+        timestamp: new Date().toISOString(),
+        studentName: data.student_name || null,
+        studentId:   data.student_id   || null,
+        major:       data.program      || null,
+        minor:       data.minor        || null,
+        source:      data.source       || 'csv',
+        result:      data
+      };
+      let reports = [];
+      try { reports = JSON.parse(localStorage.getItem('gradeai_reports') || '[]'); } catch(e) {}
+      reports.unshift(report);
+      localStorage.setItem('gradeai_reports', JSON.stringify(reports.slice(0, 30)));
+      localStorage.setItem('gradeai_current_report', JSON.stringify(report));
+
+      setStatus(statusId, 'success', 'Prediction complete! Redirecting…');
+      setTimeout(() => window.location.href='predictions.html', 800);
+    } catch(e) {
+      setStatus(statusId, 'error', 'Could not connect to the GradeAI server. Make sure <code>python app.py</code> is running on port 5000.');
+      btn.disabled = false;
+    }
+  }
+
+  function runCSV() { postFile(csvFile, '/api/predict/csv', 'csvStatus', document.getElementById('runCSVBtn')); }
+  function runPDF() { postFile(pdfFile, '/api/predict/pdf', 'pdfStatus', document.getElementById('runPDFBtn')); }
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GradeAI: Sign In</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { overflow: hidden; }
+    .err-msg { font-size: 12.5px; color: #c00; background: #ffe5e5; border-radius: 8px; padding: 10px 14px; margin-top: 14px; display: none; }
+    .err-msg.show { display: block; }
+    .btn-signin:disabled { opacity: .6; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <!-- Left panel -->
+    <div class="login-left">
+      <div class="sidebar-logo">
+        <div class="logo-dot"></div>
+        <div class="logo-text">GradeAI</div>
+      </div>
+      <div class="login-headline">
+        <div class="login-eyebrow">AI-Powered Education</div>
+        <div class="login-h1">
+          Predict.<br>
+          Protect.<br>
+          <span>Improve.</span>
+        </div>
+        <p class="login-desc">Identify at-risk students before it's too late using intelligent grade prediction powered by machine learning.</p>
+        <div class="login-divider"></div>
+        <div class="login-stats">
+          <div>
+            <div class="login-stat-val">94%</div>
+            <div class="login-stat-label">Prediction Accuracy</div>
+          </div>
+          <div>
+            <div class="login-stat-val">3s</div>
+            <div class="login-stat-label">Avg. Processing Time</div>
+          </div>
+          <div>
+            <div class="login-stat-val">∞</div>
+            <div class="login-stat-label">Students Supported</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="login-right">
+      <div class="login-form-wrap">
+        <div class="login-welcome">Welcome back</div>
+        <div class="login-sub">Sign in to your account to continue</div>
+
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="loginEmail" type="email" placeholder="Enter your email" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-input" id="loginPassword" type="password" placeholder="Enter your password" autocomplete="current-password" />
+        </div>
+
+        <div id="loginErr" class="err-msg"></div>
+
+        <button class="btn-signin" id="loginBtn" onclick="doLogin()">
+          Sign In
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 16l4-4-4-4M8 12h8"/>
+          </svg>
+        </button>
+
+        <div class="login-help" style="margin-top:18px;font-size:12.5px;color:var(--text-muted);text-align:center">
+          Don't have an account?
+          <a href="signup.html" style="color:var(--text-primary);font-weight:600;text-decoration:none">Create one</a>
+        </div>
+      </div>
+      <div class="login-version">v2.1.0</div>
+    </div>
+  </div>
+
+<script>
+  // If already logged in, skip to dashboard
+  (async () => {
+    try {
+      const r = await fetch('/api/me');
+      if (r.ok) window.location.replace('dashboard.html');
+    } catch(e) {}
+  })();
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  async function doLogin() {
+    const email    = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl    = document.getElementById('loginErr');
+    const btn      = document.getElementById('loginBtn');
+
+    errEl.classList.remove('show');
+
+    if (!email || !password) {
+      errEl.textContent = 'Please enter your email and password.';
+      errEl.classList.add('show');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    try {
+      const res  = await fetch('/api/login', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errEl.textContent = data.error || 'Login failed.';
+        errEl.classList.add('show');
+        btn.disabled = false;
+        btn.innerHTML = 'Sign In <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16l4-4-4-4M8 12h8"/></svg>';
+        return;
+      }
+
+      window.location.href = 'dashboard.html';
+    } catch(e) {
+      errEl.textContent = 'Could not connect to server. Make sure the app is running.';
+      errEl.classList.add('show');
+      btn.disabled = false;
+      btn.innerHTML = 'Sign In <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16l4-4-4-4M8 12h8"/></svg>';
+    }
+  }
+</script>
+</body>
+</html>

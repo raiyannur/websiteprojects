@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GradeAI: Profile</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .profile-grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+    .profile-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px 28px 24px; }
+    .profile-avatar-lg {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--accent); display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 800; font-size: 28px; color: #111;
+      margin-bottom: 16px;
+    }
+    .profile-display-name { font-family: var(--font-display); font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+    .profile-email        { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
+    .profile-meta-row     { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-muted); padding: 10px 0; border-top: 1px solid var(--border); }
+    .profile-meta-label   { font-weight: 600; color: var(--text-secondary); min-width: 90px; }
+    .edit-name-section    { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
+    .edit-name-title      { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+    .edit-name-row        { display: flex; gap: 8px; }
+    .edit-name-row input  { flex: 1; }
+    .save-msg { font-size: 12px; margin-top: 8px; display: none; }
+    .save-msg.ok  { color: #166534; display: block; }
+    .save-msg.err { color: #c00;    display: block; }
+    .transcript-section { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px 28px; }
+    .transcript-title   { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin-bottom: 18px; }
+    .transcript-field   { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 16px; }
+    .transcript-field:last-child { border-bottom: none; }
+    .tf-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; color: var(--text-muted); min-width: 80px; padding-top: 2px; }
+    .tf-val   { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+    .no-transcript { font-size: 13px; color: var(--text-muted); padding: 8px 0; line-height: 1.7; }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="logo-dot"></div><div class="logo-text">GradeAI</div></div>
+  <div class="sidebar-section-label">Main</div>
+  <div class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard
+    </a>
+    <a href="upload.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload Data
+    </a>
+    <a href="predictions.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Predictions
+    </a>
+    <a href="reports.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Reports
+    </a>
+    <a href="profile.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar-sm" id="sidebarInitial">U</div>
+      <div><div class="user-name" id="sidebarName">User</div><div class="user-role">GradeAI</div></div>
+    </div>
+    <div class="sign-out" onclick="signOut()">Sign out</div>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Profile</div>
+      <div class="topbar-sub" id="todayDate">—</div>
+    </div>
+    <div class="topbar-right">
+      <div class="avatar" id="topbarAvatar">U</div>
+    </div>
+  </div>
+
+  <div class="breadcrumb">
+    <a href="dashboard.html">Dashboard</a>
+    <span class="breadcrumb-sep">›</span>
+    <span>Profile</span>
+  </div>
+
+  <div class="profile-grid">
+
+    <!-- Left: account card -->
+    <div class="profile-card">
+      <div class="profile-avatar-lg" id="profileAvatar">U</div>
+      <div class="profile-display-name" id="profileName">—</div>
+      <div class="profile-email" id="profileEmail">—</div>
+
+      <div class="profile-meta-row">
+        <span class="profile-meta-label">Member since</span>
+        <span id="profileCreated">—</span>
+      </div>
+
+      <!-- Edit name -->
+      <div class="edit-name-section">
+        <div class="edit-name-title">Change display name</div>
+        <div class="edit-name-row">
+          <input class="form-input" id="newNameInput" type="text" placeholder="New display name" style="font-size:13px;padding:9px 12px" />
+          <button class="btn btn-dark" style="font-size:12px;padding:9px 16px;white-space:nowrap" onclick="saveName()">Save</button>
+        </div>
+        <div class="save-msg" id="saveMsg"></div>
+      </div>
+    </div>
+
+    <!-- Right: transcript info -->
+    <div class="transcript-section">
+      <div class="transcript-title">Transcript Information</div>
+      <div id="transcriptFields"></div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  document.getElementById('todayDate').textContent =
+    new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  async function signOut() {
+    try { await fetch('/api/logout', { method: 'POST' }); } catch(e) {}
+    window.location.href = 'index.html';
+  }
+
+  // ── Auth guard ───────────────────────────────────────────────
+  let currentUser = null;
+  (async () => {
+    try {
+      const r = await fetch('/api/me');
+      if (!r.ok) { window.location.replace('index.html'); return; }
+      currentUser = await r.json();
+      renderProfile(currentUser);
+    } catch(e) { window.location.replace('index.html'); }
+  })();
+
+  function renderProfile(u) {
+    const initial = u.name.trim().charAt(0).toUpperCase();
+    document.getElementById('profileAvatar').textContent  = initial;
+    document.getElementById('topbarAvatar').textContent   = initial;
+    document.getElementById('sidebarInitial').textContent = initial;
+    document.getElementById('sidebarName').textContent    = u.name.split(' ')[0];
+    document.getElementById('profileName').textContent    = u.name;
+    document.getElementById('profileEmail').textContent   = u.email;
+    document.getElementById('newNameInput').value         = u.name;
+
+    if (u.created_at) {
+      document.getElementById('profileCreated').textContent =
+        new Date(u.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+
+    // Transcript info from localStorage
+    let report = null;
+    try { report = JSON.parse(localStorage.getItem('gradeai_current_report')); } catch(e) {}
+
+    const container = document.getElementById('transcriptFields');
+    const fields = [
+      { label: 'Student ID', value: report?.studentId  || null },
+      { label: 'Major',      value: report?.major      || null },
+      { label: 'Minor',      value: report?.minor      || null },
+      { label: 'Source',     value: report ? (report.source === 'pdf' ? 'PDF Transcript' : 'CSV Upload') : null },
+    ];
+
+    const hasAny = fields.some(f => f.value);
+    if (!hasAny) {
+      container.innerHTML = `<div class="no-transcript">No transcript data on record yet.<br>Upload a PDF transcript from the <a href="upload.html" style="color:var(--text-primary);font-weight:600">Upload Data</a> page to populate this section.</div>`;
+      return;
+    }
+
+    fields.forEach(f => {
+      if (!f.value) return;
+      container.innerHTML += `<div class="transcript-field">
+        <div class="tf-label">${f.label}</div>
+        <div class="tf-val">${f.value}</div>
+      </div>`;
+    });
+  }
+
+  async function saveName() {
+    const newName = document.getElementById('newNameInput').value.trim();
+    const msgEl   = document.getElementById('saveMsg');
+    msgEl.className = 'save-msg';
+
+    if (!newName) {
+      msgEl.textContent = 'Name cannot be empty.';
+      msgEl.classList.add('err');
+      return;
+    }
+
+    try {
+      const res  = await fetch('/api/me/name', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ name: newName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        msgEl.textContent = data.error || 'Failed to save.';
+        msgEl.classList.add('err');
+        return;
+      }
+      // Update UI
+      document.getElementById('profileName').textContent    = data.name;
+      document.getElementById('profileAvatar').textContent  = data.name.charAt(0).toUpperCase();
+      document.getElementById('topbarAvatar').textContent   = data.name.charAt(0).toUpperCase();
+      document.getElementById('sidebarInitial').textContent = data.name.charAt(0).toUpperCase();
+      document.getElementById('sidebarName').textContent    = data.name.split(' ')[0];
+      msgEl.textContent = 'Name updated successfully.';
+      msgEl.classList.add('ok');
+      setTimeout(() => { msgEl.className = 'save-msg'; }, 3000);
+    } catch(e) {
+      msgEl.textContent = 'Could not connect to server.';
+      msgEl.classList.add('err');
+    }
+  }
+</script>
+</body>
+</html>
