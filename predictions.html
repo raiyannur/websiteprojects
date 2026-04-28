@@ -224,6 +224,8 @@
       currentReport.studentName.split(' ')[0] + "'s Prediction";
   }
 
+  let mainChartInstance = null;
+
   if (!result) {
     document.getElementById('noDataSection').style.display = 'flex';
   } else {
@@ -233,8 +235,6 @@
     document.getElementById('pdfBtn').style.display    = 'inline-flex';
     renderResults(result);
   }
-
-  let mainChartInstance = null;
 
   function renderResults(r) {
     const predGPA  = r.predicted_gpa;
