@@ -26,6 +26,21 @@
     .zoom-hint { font-size:11px; color:var(--text-muted); margin-top:8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .reset-zoom-btn { font-size:11px; font-weight:600; color:var(--text-secondary); background:#f0ede6; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; }
     .reset-zoom-btn:hover { background:#e5e2da; }
+    .history-card { background:#fff; border-radius:12px; border:1px solid var(--border); margin-bottom:18px; overflow:hidden; }
+    .history-card-header { padding:16px 20px 12px; border-bottom:1px solid var(--border); }
+    .history-card-title { font-size:14px; font-weight:700; color:var(--text-primary); }
+    .history-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+    .history-table thead th { background:#0d0d0d; color:#fff; font-weight:600; font-size:11px; letter-spacing:0.5px; padding:9px 16px; text-align:left; }
+    .history-table tbody tr { border-bottom:1px solid #f0ede6; }
+    .history-table tbody tr:last-child { border-bottom:none; }
+    .history-table tbody td { padding:9px 16px; color:var(--text-primary); }
+    .history-table tbody tr.row-current { background:#dcfce7; }
+    .history-table tbody tr.row-current td { color:#15803d; font-weight:600; }
+    .history-table tbody tr.row-predicted { background:#dbeafe; }
+    .history-table tbody tr.row-predicted td { color:#1d4ed8; font-weight:600; }
+    .history-table tbody tr.row-excluded { opacity:0.5; }
+    .diff-pos { color:#16a34a; font-weight:600; }
+    .diff-neg { color:#c00; font-weight:600; }
   </style>
 </head>
 <body>
@@ -135,6 +150,24 @@
       </div>
     </div>
 
+    <!-- History table -->
+    <div class="history-card">
+      <div class="history-card-header">
+        <div class="history-card-title">Semester History</div>
+      </div>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Semester</th>
+            <th>Semester GPA</th>
+            <th>CGPA</th>
+            <th>vs Average</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="historyTableBody"></tbody>
+      </table>
+    </div>
 
   </div><!-- /resultsSection -->
 </main>
@@ -292,6 +325,41 @@
       }
     });
 
+    // ── History table ───────────────────────────────────────
+    const tbody = document.getElementById('historyTableBody');
+    tbody.innerHTML = '';
+    const includedHist = r.history.filter(h => !excluded.includes(h.semester));
+    const avgGPA = includedHist.reduce((a, h) => a + h.gpa, 0) / (includedHist.length || 1);
+    const lastActualSem = r.history[r.history.length - 1].semester;
+
+    r.history.forEach(h => {
+      const isCur = h.semester === lastActualSem;
+      const isExc = excluded.includes(h.semester);
+      const diff  = h.gpa - avgGPA;
+      const diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(2);
+      const diffClass = diff >= 0 ? 'diff-pos' : 'diff-neg';
+      const tr = document.createElement('tr');
+      if (isCur)      tr.className = 'row-current';
+      else if (isExc) tr.className = 'row-excluded';
+      tr.innerHTML = `
+        <td>Semester ${h.semester}</td>
+        <td>${h.gpa.toFixed(2)}</td>
+        <td>${h.cgpa.toFixed(2)}</td>
+        <td class="${isExc ? '' : diffClass}">${isExc ? '—' : diffStr}</td>
+        <td>${isCur ? 'Current' : isExc ? 'Excluded' : 'Actual'}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    // Predicted row (blue)
+    const predRow = document.createElement('tr');
+    predRow.className = 'row-predicted';
+    predRow.innerHTML = `
+      <td>Semester ${r.next_semester}</td>
+      <td>${r.predicted_gpa.toFixed(2)}</td>
+      <td>${r.projected_cgpa_arithmetic.toFixed(2)}</td>
+      <td>—</td>
+      <td>Predicted</td>`;
+    tbody.appendChild(predRow);
   }
 
   function resetZoom() {
