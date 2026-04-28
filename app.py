@@ -320,8 +320,8 @@ def run_prediction(semesters: list[dict]) -> dict:
     # ── Confidence interval from Huber residuals ───────────────────────────
     residuals = y_fit - reg_gpa.predict(X_fit)
     std_error = float(np.std(residuals, ddof=min(2, len(residuals) - 1)))
-    ci_lower  = round(max(0.0, pred_gpa - std_error), 4)
-    ci_upper  = round(min(4.0, pred_gpa + std_error), 4)
+    ci_lower  = round(max(0.0, pred_gpa - 1.96 * std_error), 4)
+    ci_upper  = round(min(4.0, pred_gpa + 1.96 * std_error), 4)
 
     return {
         "next_semester":             next_sem,

@@ -120,7 +120,7 @@
       <div class="pred-card">
         <div class="pred-label">Confidence Interval</div>
         <div class="pred-value" id="ciCardVal" style="font-size:20px;padding-top:6px">—</div>
-        <div class="pred-sub">±1 SE range</div>
+        <div class="pred-sub">95% confidence interval</div>
       </div>
       <div class="pred-card">
         <div class="pred-label">Model Fit (R²)</div>
@@ -551,7 +551,7 @@
     if (result.predicted_gpa_ci_lower !== undefined) {
       doc.setFillColor(240,237,230); doc.roundedRect(margin,y,contentW,7,2,2,'F');
       doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(80,80,80);
-      doc.text('Confidence interval (±1 SE): '+result.predicted_gpa_ci_lower.toFixed(2)+' – '+result.predicted_gpa_ci_upper.toFixed(2), margin+4, y+4.5);
+      doc.text('95% CI: '+result.predicted_gpa_ci_lower.toFixed(2)+' – '+result.predicted_gpa_ci_upper.toFixed(2), margin+4, y+4.5);
       y += 12;
     }
 

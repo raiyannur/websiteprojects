@@ -531,7 +531,7 @@
       doc.setFontSize(8);
       doc.setTextColor(80, 80, 80);
       doc.text(
-        'Confidence interval (±1 SE): ' + r.predicted_gpa_ci_lower.toFixed(2) + ' – ' + r.predicted_gpa_ci_upper.toFixed(2),
+        '95% CI: ' + r.predicted_gpa_ci_lower.toFixed(2) + ' – ' + r.predicted_gpa_ci_upper.toFixed(2),
         margin + 4, y + 4.5
       );
       y += 12;
